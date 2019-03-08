@@ -22,3 +22,10 @@ OPEN_CLOSE_GET = API.inherit('OpenCloseGET', OPEN_CLOSE_POST, {
 
 OPEN_CLOSE_PUT = API.inherit('OpenClosePUT', OPEN_CLOSE_POST, {})
 
+OPEN_CLOSE_NOW_GET = API.model('OpenCloseNowGET', {
+    'state': fields.Boolean(title='Current State'),
+})
+
+OPEN_CLOSE_NOW_INFO_GET = API.inherit('OpenCloseNowInfoGET', OPEN_CLOSE_NOW_GET, {
+    'current_periods': fields.List(fields.Nested(OPEN_CLOSE_GET)),
+})

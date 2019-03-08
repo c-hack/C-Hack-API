@@ -1,18 +1,17 @@
+from time import time
 from flask import request
 from flask_restplus import Api, Resource, abort, marshal
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
-from . import API
-from . import APP
-from .api_models import OPEN_CLOSE_GET
-from .api_models import OPEN_CLOSE_POST
-from .api_models import OPEN_CLOSE_PUT
+from . import API, APP
+from .api_models import OPEN_CLOSE_GET, OPEN_CLOSE_POST, OPEN_CLOSE_PUT, OPEN_CLOSE_NOW_GET, OPEN_CLOSE_NOW_INFO_GET
 
 from .. import DB
 from ..db_models.open_close import OpenClose
 
-
 OPEN_CLOSE_NS = API.namespace('openclose', description='OpenClose Endpoint', path='/open-close')
+
 
 @OPEN_CLOSE_NS.route('/')
 class PeriodList(Resource):
@@ -30,15 +29,53 @@ class PeriodList(Resource):
 
     @OPEN_CLOSE_NS.doc(model=OPEN_CLOSE_GET, body=OPEN_CLOSE_POST)
     @OPEN_CLOSE_NS.response(201, 'Created.')
+    @OPEN_CLOSE_NS.response(400, "Argument Error!")
     # pylint: disable=R0201
     def post(self):
         """
         Add a new period to the database
         """
         new = OpenClose(**request.get_json())
+        if new.begin >= new.end:
+            abort(400, "begin must be befor end")
         DB.session.add(new)
         DB.session.commit()
         return marshal(new, OPEN_CLOSE_GET), 201
+
+
+@OPEN_CLOSE_NS.route('/now/')
+class NowInPeriod(Resource):
+    """
+    Return current state
+    """
+
+    @API.marshal_with(OPEN_CLOSE_NOW_GET)
+    # pylint: disable=R0201
+    def get(self):
+        now = int(time())
+        """
+        Get current state
+        """
+        state = (OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).count()>0)
+        return {'state': state}, 200
+
+
+@OPEN_CLOSE_NS.route('/now-detailed/')
+class NowInPeriodDetailed(Resource):
+    """
+    Return current state
+    """
+
+    @API.marshal_with(OPEN_CLOSE_NOW_INFO_GET)
+    # pylint: disable=R0201
+    def get(self):
+        now = int(time())
+        """
+        Get current state
+        """
+        periods = OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).all()
+        return {'state': len(periods)>0, 'current_periods': periods}, 200
+
 
 @OPEN_CLOSE_NS.route('/<int:period_id>/')
 class PeriodDetail(Resource):
@@ -89,7 +126,3 @@ class PeriodDetail(Resource):
         DB.session.delete(period)
         DB.session.commit()
         return "", 204
-
-
-
-
