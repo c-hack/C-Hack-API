@@ -6,8 +6,9 @@ COPY c_hack_api /app/c_hack_api
 
 FROM python:3.6-alpine 
 
-COPY --from=source /.docker/requirements-docker.txt /app/
 COPY --from=source /app/ /app/
+COPY --from=source /.docker/requirements-docker.txt /app/
+COPY --from=source /.docker/logging_config.json /app/
 
 RUN python3.6 -m pip install --no-cache-dir -r /app/requirements.txt
 RUN python3.6 -m pip install --no-cache-dir -r /app/requirements-docker.txt
