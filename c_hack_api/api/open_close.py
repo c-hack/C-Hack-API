@@ -2,10 +2,10 @@ from time import time
 from flask import request
 from flask_restplus import Api, Resource, abort, marshal
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_
+from sqlalchemy import and_, asc
 
 from . import API, APP
-from .api_models import OPEN_CLOSE_GET, OPEN_CLOSE_POST, OPEN_CLOSE_PUT, OPEN_CLOSE_NOW_GET, OPEN_CLOSE_NOW_INFO_GET
+from .api_models import OPEN_CLOSE_GET, OPEN_CLOSE_POST, OPEN_CLOSE_PUT, OPEN_CLOSE_NOW_GET, OPEN_CLOSE_NOW_INFO_GET, OPEN_CLOSE_NEXT_CHANGE_GET
 
 from .. import DB
 from ..db_models.open_close import OpenClose
@@ -56,7 +56,7 @@ class NowInPeriod(Resource):
         """
         Get current state
         """
-        state = (OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).count()>0)
+        state = (OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).count() > 0)
         return {'state': state}, 200
 
 
@@ -74,7 +74,33 @@ class NowInPeriodDetailed(Resource):
         Get current state
         """
         periods = OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).all()
-        return {'state': len(periods)>0, 'current_periods': periods}, 200
+        return {'state': len(periods) > 0, 'current_periods': periods}, 200
+
+
+@OPEN_CLOSE_NS.route('/next-change/')
+class NextChange(Resource):
+    """
+    Return next state change
+    """
+
+    @API.marshal_with(OPEN_CLOSE_NEXT_CHANGE_GET)
+    # pylint: disable=R0201
+    def get(self):
+        now = int(time())
+        """
+        Get current state
+        """
+        periods = OpenClose.query.filter(OpenClose.end > now).order_by(OpenClose.end.asc())
+        state = len(OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).all())
+        if state:
+            for x in periods:
+                for y in periods:
+                    print(str(x.id)+" "+str(y.id))
+                    if y.begin <= x.end and y.end >= x.end:
+                        break
+                    return {'next_state': not state, 'next_change': x.end}
+        else:
+            return {'next_state': not state, 'next_change': periods.first().begin}
 
 
 @OPEN_CLOSE_NS.route('/<int:period_id>/')

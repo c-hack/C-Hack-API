@@ -13,7 +13,7 @@ ROOT_MODEL = API.model('RootModel', {
 OPEN_CLOSE_POST = API.model('OpenClosePOST', {
     'begin': fields.Integer(title='Open From'),
     'end': fields.Integer(title='Open Until'),
-    'comment': fields.String(max_length=STD_STRING_SIZE,title='Comment'),
+    'comment': fields.String(max_length=STD_STRING_SIZE, title='Comment'),
 })
 
 OPEN_CLOSE_GET = API.inherit('OpenCloseGET', OPEN_CLOSE_POST, {
@@ -28,4 +28,9 @@ OPEN_CLOSE_NOW_GET = API.model('OpenCloseNowGET', {
 
 OPEN_CLOSE_NOW_INFO_GET = API.inherit('OpenCloseNowInfoGET', OPEN_CLOSE_NOW_GET, {
     'current_periods': fields.List(fields.Nested(OPEN_CLOSE_GET)),
+})
+
+OPEN_CLOSE_NEXT_CHANGE_GET = API.model('OpenCloseNextChangeGet', {
+    'next_change': fields.Integer(title='Next change'),
+    'next_state': fields.Boolean(title='Next state')
 })
