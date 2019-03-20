@@ -86,13 +86,11 @@ class NextChange(Resource):
     @API.marshal_with(OPEN_CLOSE_NEXT_CHANGE_GET)
     # pylint: disable=R0201
     def get(self):
-#        now = int(time())
         """
         Get current state
         """
-        now = 22
-
-        state = len(OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).all()) > 0
+        now = int(time())
+        state = (OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).count() > 0)
         periods = OpenClose.query.filter(OpenClose.end > now).order_by(OpenClose.end.asc())
         if state:
             end = OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).order_by(OpenClose.end.desc()).first().end
@@ -108,7 +106,7 @@ class NextChange(Resource):
             if len(OpenClose.query.filter(OpenClose.end > now).all()) == 0:
                 next_change = None
             else:
-                next_change = OpenClose.query.filter(OpenClose.end > now).order_by(OpenClose.begin.asc()).first().begin
+                next_change = OpenClose.query.filter(OpenClose.begin > now).order_by(OpenClose.begin.asc()).first().begin
         return {'state': state, 'next_change': next_change}
 
 @OPEN_CLOSE_NS.route('/<int:period_id>/')
