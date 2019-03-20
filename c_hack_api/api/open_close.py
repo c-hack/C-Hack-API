@@ -2,7 +2,7 @@ from time import time
 from flask import request
 from flask_restplus import Api, Resource, abort, marshal
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_, asc
+from sqlalchemy import and_, asc, desc
 
 from . import API, APP
 from .api_models import OPEN_CLOSE_GET, OPEN_CLOSE_POST, OPEN_CLOSE_PUT, OPEN_CLOSE_NOW_GET, OPEN_CLOSE_NOW_INFO_GET, OPEN_CLOSE_NEXT_CHANGE_GET
@@ -86,22 +86,30 @@ class NextChange(Resource):
     @API.marshal_with(OPEN_CLOSE_NEXT_CHANGE_GET)
     # pylint: disable=R0201
     def get(self):
-        now = int(time())
+#        now = int(time())
         """
         Get current state
         """
-        periods = OpenClose.query.filter(OpenClose.end > now).order_by(OpenClose.end.asc())
-        state = len(OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).all())
-        if state:
-            for x in periods:
-                for y in periods:
-                    print(str(x.id)+" "+str(y.id))
-                    if y.begin <= x.end and y.end >= x.end:
-                        break
-                    return {'next_state': not state, 'next_change': x.end}
-        else:
-            return {'next_state': not state, 'next_change': periods.first().begin}
+        now = 22
 
+        state = len(OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).all()) > 0
+        periods = OpenClose.query.filter(OpenClose.end > now).order_by(OpenClose.end.asc())
+        if state:
+            end = OpenClose.query.filter(and_(OpenClose.begin < now), (OpenClose.end > now)).order_by(OpenClose.end.desc()).first().end
+            for x in periods:
+                if x.end >= end and x.begin <= end:
+                    end = x.end
+                    continue
+                break
+            next_change = end
+
+
+        else:
+            if len(OpenClose.query.filter(OpenClose.end > now).all()) == 0:
+                next_change = None
+            else:
+                next_change = OpenClose.query.filter(OpenClose.end > now).order_by(OpenClose.begin.asc()).first().begin
+        return {'state': state, 'next_change': next_change}
 
 @OPEN_CLOSE_NS.route('/<int:period_id>/')
 class PeriodDetail(Resource):

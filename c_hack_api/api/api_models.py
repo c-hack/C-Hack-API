@@ -30,7 +30,6 @@ OPEN_CLOSE_NOW_INFO_GET = API.inherit('OpenCloseNowInfoGET', OPEN_CLOSE_NOW_GET,
     'current_periods': fields.List(fields.Nested(OPEN_CLOSE_GET)),
 })
 
-OPEN_CLOSE_NEXT_CHANGE_GET = API.model('OpenCloseNextChangeGet', {
+OPEN_CLOSE_NEXT_CHANGE_GET = API.inherit('OpenCloseNextChangeGet', OPEN_CLOSE_NOW_GET, {
     'next_change': fields.Integer(title='Next change'),
-    'next_state': fields.Boolean(title='Next state')
 })
